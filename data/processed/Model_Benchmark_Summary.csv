@@ -1,0 +1,5 @@
+Model,Category,MAE,RMSE,Pinball_P10,Pinball_P50,Pinball_P90,Avg_Pinball_Loss,Training_Time_Sec
+OR Baseline (Croston),Operations Research,2.773,3.77,0.701,1.387,1.351,1.146,0.05
+OR Baseline (MA-7d),Operations Research,2.812,3.831,0.76,1.406,1.287,1.151,0.02
+LightGBM Quantile (Pinball),Tree-based GBDT,2.419,3.276,0.486,1.21,0.552,0.749,11.97
+Deep Probabilistic (PyTorch),Deep Neural Network,2.466,3.288,0.488,1.233,0.556,0.759,20.66

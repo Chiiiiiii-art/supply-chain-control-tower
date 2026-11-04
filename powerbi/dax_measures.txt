@@ -1,0 +1,145 @@
+/*
+========================================================================================
+   POWER BI DAX MEASURES LIBRARY: SUPPLY CHAIN RESILIENCE CONTROL TOWER
+   Author: Alex Liang (EY Advisory Candidate)
+   Description: Ready-to-use DAX measures structured for Star Schema reporting.
+========================================================================================
+*/
+
+// =====================================================================================
+// 1. 基礎銷售與實際需求 (Base Sales & Actual Demand)
+// =====================================================================================
+
+Total Actual Sales = 
+SUM(Fact_ForecastAndInventory[Actual_Sales])
+
+Average Daily Demand = 
+AVERAGE(Fact_ForecastAndInventory[Actual_Sales])
+
+Total Sales Revenue = 
+SUMX(
+    Fact_ForecastAndInventory, 
+    Fact_ForecastAndInventory[Actual_Sales] * Fact_ForecastAndInventory[Sell_Price]
+)
+
+// =====================================================================================
+// 2. 機率性預測與區間指標 (Probabilistic Forecasts & Uncertainty Bands)
+// =====================================================================================
+
+Forecast Demand (LGB P50 - Median) = 
+SUM(Fact_ForecastAndInventory[Pred_LGB_P50])
+
+Forecast Demand (LGB P10 - Conservative) = 
+SUM(Fact_ForecastAndInventory[Pred_LGB_P10])
+
+Forecast Demand (LGB P90 - Optimistic) = 
+SUM(Fact_ForecastAndInventory[Pred_LGB_P90])
+
+Forecast Demand (Croston Baseline) = 
+SUM(Fact_ForecastAndInventory[Pred_Croston])
+
+Forecast Demand (Deep Probabilistic) = 
+SUM(Fact_ForecastAndInventory[Pred_Deep_P50])
+
+// 預測不確定性區間幅度 (Spread between P90 and P10)
+Forecast Uncertainty Spread = 
+[Forecast Demand (LGB P90 - Optimistic)] - [Forecast Demand (LGB P10 - Conservative)]
+
+Uncertainty Spread % = 
+DIVIDE(
+    [Forecast Uncertainty Spread], 
+    [Forecast Demand (LGB P50 - Median)], 
+    0
+)
+
+// =====================================================================================
+// 3. 庫存政策與緩衝對比 (Inventory Policies & Buffer Reduction)
+// =====================================================================================
+
+Classic Safety Stock (Gaussian) = 
+SUM(Fact_ForecastAndInventory[Safety_Stock_Classic])
+
+Dynamic Safety Stock (ML Quantile) = 
+SUM(Fact_ForecastAndInventory[Safety_Stock_Quantile])
+
+Safety Stock Buffer Reduction (Units) = 
+[Classic Safety Stock (Gaussian)] - [Dynamic Safety Stock (ML Quantile)]
+
+Safety Stock Reduction % = 
+DIVIDE(
+    [Safety Stock Buffer Reduction (Units)], 
+    [Classic Safety Stock (Gaussian)], 
+    0
+)
+
+Classic Reorder Point (ROP) = 
+SUM(Fact_ForecastAndInventory[ROP_Classic])
+
+Dynamic Reorder Point (ROP) = 
+SUM(Fact_ForecastAndInventory[ROP_Quantile])
+
+// =====================================================================================
+// 4. 財務成本與投資回報 ROI (Financial Costs & Business Value Realization)
+// =====================================================================================
+
+Total Cost (Classic Gaussian Policy) = 
+SUM(Fact_ForecastAndInventory[Total_Cost_Classic])
+
+Total Cost (Dynamic ML Quantile Policy) = 
+SUM(Fact_ForecastAndInventory[Total_Cost_Quantile])
+
+Holding Cost (Classic) = 
+SUM(Fact_ForecastAndInventory[Holding_Cost_Classic])
+
+Stockout Cost (Classic) = 
+SUM(Fact_ForecastAndInventory[Stockout_Cost_Classic])
+
+Holding Cost (ML Quantile) = 
+SUM(Fact_ForecastAndInventory[Holding_Cost_Quantile])
+
+Stockout Cost (ML Quantile) = 
+SUM(Fact_ForecastAndInventory[Stockout_Cost_Quantile])
+
+Net Cost Savings ($) = 
+[Total Cost (Classic Gaussian Policy)] - [Total Cost (Dynamic ML Quantile Policy)]
+
+Cost Reduction % = 
+DIVIDE(
+    [Net Cost Savings ($)], 
+    [Total Cost (Classic Gaussian Policy)], 
+    0
+)
+
+// =====================================================================================
+// 5. 服務水準與缺貨風險 KPI (Service Levels & Stockout Risk KPI)
+// =====================================================================================
+
+Total Incidents Count = 
+COUNTROWS(Fact_ForecastAndInventory)
+
+Stockout Incidents (Classic) = 
+CALCULATE(
+    COUNTROWS(Fact_ForecastAndInventory), 
+    Fact_ForecastAndInventory[Is_Stockout_Classic] = 1
+)
+
+Stockout Incidents (ML Quantile) = 
+CALCULATE(
+    COUNTROWS(Fact_ForecastAndInventory), 
+    Fact_ForecastAndInventory[Is_Stockout_Quantile] = 1
+)
+
+Stockout Rate % (Classic) = 
+DIVIDE([Stockout Incidents (Classic)], [Total Incidents Count], 0)
+
+Stockout Rate % (ML Quantile) = 
+DIVIDE([Stockout Incidents (ML Quantile)], [Total Incidents Count], 0)
+
+Service Level % (Classic) = 
+1 - [Stockout Rate % (Classic)]
+
+Service Level % (ML Quantile) = 
+1 - [Stockout Rate % (ML Quantile)]
+
+Service Level Improvement = 
+[Service Level % (ML Quantile)] - [Service Level % (Classic)]
