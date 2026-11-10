@@ -132,5 +132,6 @@ def generate_benchmark_m5(output_dir: str, n_years: int = 2, seed: int = 42):
     return df_sales, df_calendar
 
 if __name__ == "__main__":
-    out_dir = r"C:\Users\alexl\Desktop\Programs\supply-chain-control-tower\data\raw"
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    out_dir = os.path.join(project_root, "data", "raw")
     generate_benchmark_m5(out_dir)

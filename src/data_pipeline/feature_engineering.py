@@ -60,6 +60,7 @@ def build_features(raw_data_dir: str, processed_data_dir: str):
     return train_df, test_df
 
 if __name__ == "__main__":
-    raw_dir = r"C:\Users\alexl\Desktop\Programs\supply-chain-control-tower\data\raw"
-    proc_dir = r"C:\Users\alexl\Desktop\Programs\supply-chain-control-tower\data\processed"
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    raw_dir = os.path.join(project_root, "data", "raw")
+    proc_dir = os.path.join(project_root, "data", "processed")
     build_features(raw_dir, proc_dir)
