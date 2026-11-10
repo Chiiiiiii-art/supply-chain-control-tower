@@ -7,7 +7,6 @@
 [![Power BI](https://img.shields.io/badge/Dashboard-Power_BI_Ready-yellow.svg)](https://powerbi.microsoft.com/)
 [![SHAP](https://img.shields.io/badge/Governance-Responsible_AI-brightgreen.svg)](https://shap.readthedocs.io/)
 
-本專案為針對安永（EY）諮詢顧問（資料科學、供應鏈管理、新興科技）打造之**端到端智慧決策解決方案**。
 透過真實 Walmart M5 供應鏈場景，解決傳統常態分佈安全庫存之盲點，實現機率性分位數預測（P10/P50/P90）與作業研究報童定理（Newsvendor Problem）成本折衝，並無縫對接 Power BI 星狀模型戰情室。
 
 ---
