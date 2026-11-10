@@ -20,7 +20,7 @@ A retail supply chain control tower built on the **Walmart M5** dataset. It repl
 
 ---
 
-## 5-Second Architecture
+## End-to-end System Architecture
 
 ```mermaid
 flowchart LR
@@ -47,6 +47,9 @@ Quantifies demand volatility and promotional spikes through adaptive P10–P90 u
 ![Demand Forecasting](docs/images/02_probabilistic_demand_forecast.png)
 *Replaces single-point estimates with P10–P90 confidence funnels, expanding inventory buffers during promotional surges.*
 
+![Demand Forecasting Interaction](docs/images/02_probabilistic_demand_forecast_interaction.png)
+*SKU-level interactive selection dynamically updates the forecast funnel and isolates intermittent demand patterns.*
+
 ---
 
 ### 3. Operations Research Inventory Policy Sandbox
@@ -54,6 +57,9 @@ Demonstrates how Newsvendor asymmetric optimization outperforms classic normal d
 
 ![Inventory Policy Sandbox](docs/images/03_inventory_policy_sandbox.png)
 *Eliminates severe stockouts in lumpy categories by reallocating safety buffer toward high-penalty SKUs.*
+
+![Inventory Policy Sandbox Interaction](docs/images/03_inventory_policy_sandbox_interaction.png)
+*Interactive category filtering isolates holding vs. stockout trade-offs, proving ML mitigation of costly stockouts.*
 
 ---
 
