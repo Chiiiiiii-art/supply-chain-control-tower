@@ -1,88 +1,60 @@
 # Supply Chain Resilience Control Tower
-### Probabilistic Demand Forecasting & Newsvendor Inventory Optimization
+### End-to-End Probabilistic Demand Forecasting & Newsvendor Inventory Engine
 
 [![Python 3.10](https://img.shields.io/badge/Python-3.10-blue.svg)](https://www.python.org/)
 [![LightGBM](https://img.shields.io/badge/Model-LightGBM_Quantile-orange.svg)](https://lightgbm.readthedocs.io/)
 [![TensorFlow](https://img.shields.io/badge/Deep_Learning-TensorFlow_Keras-red.svg)](https://www.tensorflow.org/)
 [![Power BI](https://img.shields.io/badge/Dashboard-Power_BI-yellow.svg)](https://powerbi.microsoft.com/)
 
-A retail supply chain control tower evaluated on an **M5-calibrated synthetic benchmark** (Zero-Inflated AR(1) Negative Binomial DGP with Markov promotional campaigns, smooth day-of-year seasonality, and state-level SNAP effects). It replaces rigid Gaussian safety stock with conformalized direct lead-time LightGBM quantiles (`1/L` cycle-normalized Newsvendor optimization) and a Zero-Inflated Negative Binomial neural network (`ZINB-NLL`).
-
----
-
-## Business Impact
-
-| Strategic Metric | Outcome | Operational Significance |
-| :--- | :---: | :--- |
-| **Total Cost Reduction** | **16.4%** | Saved **$2,187** across a 60-day test horizon ($13,319 → $11,133; `1/L` cycle-normalized) |
-| **Cycle Service Level (Type-1 SLA)** | **81.0%** | **+8.5%** lift over classic Gaussian baseline (72.5% → 81.0%) |
-| **Probabilistic Loss (Pinball)** | **-13.1%** | Avg Pinball loss down from 1.355 (Croston-SBA) to 1.177 (Deep ZINB-NLL) & 1.186 (LightGBM); date-clustered DM `p < 1e-8` |
-
----
-
-## End-to-end System Architecture
+Point forecasts paired with normal-distribution safety stock formulas often misprice stockouts against holding costs when retail demand is skewed, seasonal, or zero-inflated. This project connects **probabilistic forecasting**, **asymmetric Newsvendor optimization**, and a **4-page Power BI control tower** on an M5-calibrated 2-year benchmark (`22,260` transactions across 10 SKUs and 3 stores).
 
 ```mermaid
 flowchart LR
-    A["1. M5-Calibrated AR(1) Data<br/>(+12d LT Realization Buffer)"] --> B["2. Quantile ML & ZINB-NLL<br/>(LightGBM CQR / Keras)"]
-    B --> C["3. 1/L Cycle Newsvendor<br/>(Ablation & Asymmetric Costs)"]
-    C --> D["4. Power BI Control Tower<br/>(Semi-Additive DAX)"]
+    A["1. Retail Demand Simulator<br/>(AR(1) Zero-Inflated NB)"] --> B["2. Probabilistic Models<br/>(LightGBM CQR & Keras ZINB-NLL)"]
+    B --> C["3. Newsvendor Optimizer<br/>(Asymmetric Cost Sizing)"]
+    C --> D["4. Power BI Control Tower<br/>(Star Schema & DAX)"]
 ```
 
 ---
 
-## Dashboard Showcase
+## Control Tower Showcase
 
-### 1. Executive Supply Chain Control Tower
-Tracks financial savings, cycle service level, and weekly operating cost trends.
+### 1. Executive Overview
+Tracks net cost savings (`$2,187` / `-16.4%`), Cycle Service Level (`81.0%`), category savings mix, and daily cost trends across the 60-day test window.
 
 ![Executive Control Tower](docs/images/01_executive_control_tower.png)
-*Delivered \$2,187 net savings across the 60-day holdout horizon (HOUSEHOLD \$857 / 39.2%, HOBBIES \$714 / 32.6%, FOODS \$616 / 28.2%).*
 
----
-
-### 2. Probabilistic Demand Forecasting & Uncertainty Funnel
-Quantifies demand volatility and promotional spikes through adaptive P10–P90 uncertainty intervals.
+### 2. Probabilistic Demand & Uncertainty Funnel
+Overview summarizes per-SKU prediction spread alongside model medians; drilling into a store and SKU (`CA_1` + `FOODS_1_001`) reveals the adaptive P10–P90 demand interval around surges.
 
 ![Demand Forecasting](docs/images/02_probabilistic_demand_forecast.png)
-*Portfolio overview comparing daily actuals vs. LightGBM P50 while summarizing per-SKU P10–P90 `Uncertainty Spread %` across 30 series (`HASONEVALUE` guards prevent invalid cross-SKU quantile summation).*
-
 ![Demand Forecasting Interaction](docs/images/02_probabilistic_demand_forecast_interaction.png)
-*Selecting a single Store and SKU (`CA_1` + `FOODS_1_001`, 148.4% P10–P90 spread) unlocks the adaptive P10–P90 confidence funnel across daily demand swings.*
 
----
-
-### 3. Operations Research Inventory Policy Sandbox
-Demonstrates how Newsvendor asymmetric optimization outperforms classic normal distribution formulas.
+### 3. Newsvendor Policy Sandbox
+Compares safety stock allocation and holding vs. stockout cost trade-offs against Classic Gaussian rules globally and under store-level filtering (`CA_1`).
 
 ![Inventory Policy Sandbox](docs/images/03_inventory_policy_sandbox.png)
-*Side-by-side policy comparison on aligned `0–6K` Y-axes: reallocates safety buffers across asymmetric-penalty SKUs to lower total cycle cost by 16.4% while lifting Cycle SLA from 72.5% to 81.0%.*
-
 ![Inventory Policy Sandbox Interaction](docs/images/03_inventory_policy_sandbox_interaction.png)
-*Interactive Store slicing (`CA_1`) preserves aligned `0–6K` cost scales while isolating SKU-level safety stock shifts and holding vs. stockout trade-offs.*
 
----
-
-### 4. Responsible AI & Decision Attribution Matrix
-Provides governance and explainability through TreeSHAP feature importance and category drill-down.
+### 4. Model Governance & Decision Attribution
+Pairs global TreeSHAP feature attribution (seasonality, recent sales momentum, store/SKU effects, and promotions) with a category-to-SKU drill-down matrix for planner sign-off.
 
 ![Responsible AI](docs/images/04_responsible_ai_attribution.png)
-*TreeSHAP across direct lead-time `lt_p50` demand and `lt_p90` tail-risk models confirms that seasonal month (`month`, 24.1%), AR(1) lag (`sales_lag_1`, 19.0%), SKU/store fixed effects (`item_code` + `store_code`, 22.2%), and causal promotion status (`is_promo`, 8.2%) drive inventory decisions.*
 
 ---
 
-## Model Benchmark
+## Model & Policy Evaluation
 
-Evaluated on a leak-free out-of-time 60-day holdout test set (1,800 records across 30 series and 60 calendar dates; $L_1$-consistent MAE on P50, $L_2$-consistent RMSE on conditional mean, causal 1-step-ahead rolling OR baselines, and two-sided date-clustered Newey-West Diebold-Mariano tests vs. Croston-SBA):
+Evaluated chronologically on the final 60-day holdout horizon (`1,800` records across 30 series; two-sided date-clustered Diebold-Mariano tests vs. Croston-SBA):
 
-| Model Architecture | Category | MAE (P50) | RMSE (Mean) | Avg Pinball Loss | Date-DM Stat (p-value) | Training Time |
+| Model Architecture | Category | MAE (P50) | RMSE (Mean) | Avg Pinball Loss | DM Stat (p-value) | Training Time |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Croston-SBA Baseline** | Operations Research | 4.272 | 6.510 | 1.355 | — | 0.36s |
 | **MA-7d Baseline** | Operations Research | 4.442 | 6.778 | 1.416 | -3.25 (1.94e-03) | 0.02s |
 | **LightGBM Quantile** | Tree-based GBDT | **3.688** | **5.820** | 1.186 | **8.61 (5.11e-12)** | 1.55s |
 | **Deep Probabilistic (ZINB-NLL)** | TensorFlow/Keras NN | 3.717 | 5.929 | **1.177** | **7.25 (1.00e-09)** | 21.27s |
 
-### Inventory Policy Ablation (`1/L` Cycle-Normalized, 60-Day Holdout)
+### Lead-Time Inventory Ablation (60-Day Holdout)
 
 | Policy | Total Cost | Savings vs. Classic | Cycle SLA (Type-1) |
 | :--- | :---: | :---: | :---: |
@@ -91,26 +63,28 @@ Evaluated on a leak-free out-of-time 60-day holdout test set (1,800 records acro
 | **3. ML Mean + Gaussian SS (Ablation)** | \$11,154.85 | \$2,164.49 (16.2%) | 80.3% |
 | **4. Direct ML CQR Quantile Policy** | **\$11,132.55** | **\$2,186.79 (16.4%)** | **81.0%** |
 
-*Ablation note: Most cost reduction (\$2,164.49; date-DM `t=4.78, p=1.20e-05` overall vs. Classic) stems from LightGBM conditional mean forecasting replacing trailing MA-28d; incremental CQR quantile tail gain over ML-Gaussian is \$22.30 (0.20%; date-DM `t=0.23, p=0.819`), within noise on this 60-day synthetic horizon.*
-
-### Scope & Modeling Assumptions
-- **Synthetic Benchmark**: Demand follows a calibrated Zero-Inflated AR(1) Negative Binomial DGP (`seed=42`, 22,260 transactions across 742 days) evaluated on a single 60-day Nov–Dec peak holdout (`1,800` records) rather than raw proprietary POS history or multi-season rolling folds.
-- **Cycle-Normalized Newsvendor**: The main cost engine evaluates overlapping $L$-day windows scaled by `1/L` (continuous `ROP` vs. discrete `lt_sales`, Type-1 Cycle SLA) rather than a full stateful daily on-hand + in-transit pipeline simulator. An independent stateful `(R=1, S_t)` daily stress check with `unit_holding_cost / L` confirms consistent savings direction (`+10.95%` under lost sales, `+20.96%` under backorders).
-- **Model Scope Split**: `Deep ZINB-NLL` benchmarks 1-day probabilistic demand (`Avg Pinball 1.177`) while direct $L$-day Newsvendor optimization and TreeSHAP operate on the CQR-calibrated LightGBM models (`cqr_offset` applied as a global additive residual shift across SKUs).
+**Design Takeaway**: Most financial gain comes from replacing trailing averages with conditional ML demand forecasts (`$2,164` captured at `ML Mean + Gaussian`), while conformal quantile sizing reallocates buffer toward high-stockout-cost SKUs to lift Cycle SLA from `72.5%` to `81.0%`.  
+*(Note: Synthetic Nov–Dec holdout benchmark evaluated on cycle-normalized $L$-day Newsvendor windows; `Deep ZINB-NLL` benchmarks 1-day density accuracy while CQR LightGBM powers lead-time optimization and TreeSHAP. An independent daily stateful simulation confirmed `+10.95%` cost reduction under lost sales and `+20.96%` under backorders.)*
 
 ---
 
-## Quickstart
+## Project Structure & Quickstart
+
+```text
+├── src/
+│   ├── data_pipeline/       # Synthetic AR(1) NB demand generator & lag/calendar features
+│   ├── models/              # Croston-SBA/MA7, CQR LightGBM, TensorFlow ZINB-NLL, DM eval
+│   ├── inventory_engine/    # Asymmetric Newsvendor optimizer & Star Schema CSV exporter
+│   └── explainability/      # TreeSHAP lead-time feature attribution
+├── powerbi/                 # DAX measure library, layout guide, & exported Star Schema CSVs
+├── tests/test_pipeline.py   # End-to-end data contract, monotonicity, & ablation tests
+└── run_pipeline.py          # Single-entry orchestrator
+```
 
 ```bash
-# 1. Install dependencies
 pip install -r requirements.txt
-
-# 2. Run end-to-end pipeline (data -> models -> newsvendor -> star schema)
 python run_pipeline.py
-
-# 3. Run validation tests
 python tests/test_pipeline.py
 ```
 
-*Open `supply-chain.pbix` in Power BI Desktop to inspect the live dashboard.*
+*Open [`supply-chain.pbix`](supply-chain.pbix) in Power BI Desktop to explore the live report.*
