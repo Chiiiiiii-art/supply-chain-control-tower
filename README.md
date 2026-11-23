@@ -37,7 +37,7 @@ flowchart LR
 Tracks financial savings, cycle service level, and weekly operating cost trends.
 
 ![Executive Control Tower](docs/images/01_executive_control_tower.png)
-*Delivered \$2,187 net savings across the 60-day holdout horizon (HOUSEHOLD \$857 / 39.2%, HOBBIES \$714 / 32.6%, FOODS \$616 / 28.2%; illustrative Power BI snapshot prior to data refresh).*
+*Delivered \$2,187 net savings across the 60-day holdout horizon (HOUSEHOLD \$857 / 39.2%, HOBBIES \$714 / 32.6%, FOODS \$616 / 28.2%).*
 
 ---
 
@@ -45,10 +45,10 @@ Tracks financial savings, cycle service level, and weekly operating cost trends.
 Quantifies demand volatility and promotional spikes through adaptive P10–P90 uncertainty intervals.
 
 ![Demand Forecasting](docs/images/02_probabilistic_demand_forecast.png)
-*Replaces single-point estimates with P10–P90 confidence funnels, expanding inventory buffers during promotional surges.*
+*Portfolio overview comparing daily actuals vs. LightGBM P50 while summarizing per-SKU P10–P90 `Uncertainty Spread %` across 30 series (`HASONEVALUE` guards prevent invalid cross-SKU quantile summation).*
 
 ![Demand Forecasting Interaction](docs/images/02_probabilistic_demand_forecast_interaction.png)
-*SKU-level interactive selection dynamically updates the forecast funnel and isolates intermittent demand patterns.*
+*Selecting a single Store and SKU (`CA_1` + `FOODS_1_001`, 148.4% P10–P90 spread) unlocks the adaptive P10–P90 confidence funnel across daily demand swings.*
 
 ---
 
@@ -56,10 +56,10 @@ Quantifies demand volatility and promotional spikes through adaptive P10–P90 u
 Demonstrates how Newsvendor asymmetric optimization outperforms classic normal distribution formulas.
 
 ![Inventory Policy Sandbox](docs/images/03_inventory_policy_sandbox.png)
-*Eliminates severe stockouts in lumpy categories by reallocating safety buffer toward high-penalty SKUs.*
+*Side-by-side policy comparison on aligned `0–6K` Y-axes: reallocates safety buffers across asymmetric-penalty SKUs to lower total cycle cost by 16.4% while lifting Cycle SLA from 72.5% to 81.0%.*
 
 ![Inventory Policy Sandbox Interaction](docs/images/03_inventory_policy_sandbox_interaction.png)
-*Interactive category filtering isolates holding vs. stockout trade-offs, proving ML mitigation of costly stockouts.*
+*Interactive Store slicing (`CA_1`) preserves aligned `0–6K` cost scales while isolating SKU-level safety stock shifts and holding vs. stockout trade-offs.*
 
 ---
 
@@ -92,6 +92,11 @@ Evaluated on a leak-free out-of-time 60-day holdout test set (1,800 records acro
 | **4. Direct ML CQR Quantile Policy** | **\$11,132.55** | **\$2,186.79 (16.4%)** | **81.0%** |
 
 *Ablation note: Most cost reduction (\$2,164.49; date-DM `t=4.78, p=1.20e-05` overall vs. Classic) stems from LightGBM conditional mean forecasting replacing trailing MA-28d; incremental CQR quantile tail gain over ML-Gaussian is \$22.30 (0.20%; date-DM `t=0.23, p=0.819`), within noise on this 60-day synthetic horizon.*
+
+### Scope & Modeling Assumptions
+- **Synthetic Benchmark**: Demand follows a calibrated Zero-Inflated AR(1) Negative Binomial DGP (`seed=42`, 22,260 transactions across 742 days) evaluated on a single 60-day Nov–Dec peak holdout (`1,800` records) rather than raw proprietary POS history or multi-season rolling folds.
+- **Cycle-Normalized Newsvendor**: The main cost engine evaluates overlapping $L$-day windows scaled by `1/L` (continuous `ROP` vs. discrete `lt_sales`, Type-1 Cycle SLA) rather than a full stateful daily on-hand + in-transit pipeline simulator. An independent stateful `(R=1, S_t)` daily stress check with `unit_holding_cost / L` confirms consistent savings direction (`+10.95%` under lost sales, `+20.96%` under backorders).
+- **Model Scope Split**: `Deep ZINB-NLL` benchmarks 1-day probabilistic demand (`Avg Pinball 1.177`) while direct $L$-day Newsvendor optimization and TreeSHAP operate on the CQR-calibrated LightGBM models (`cqr_offset` applied as a global additive residual shift across SKUs).
 
 ---
 
