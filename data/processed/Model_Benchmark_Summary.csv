@@ -1,5 +1,5 @@
-Model,Category,MAE,RMSE,Pinball_P10,Pinball_P50,Pinball_P90,Avg_Pinball_Loss,Training_Time_Sec
-OR Baseline (Croston),Operations Research,2.773,3.77,0.701,1.387,1.351,1.146,0.05
-OR Baseline (MA-7d),Operations Research,2.812,3.831,0.76,1.406,1.287,1.151,0.02
-LightGBM Quantile (Pinball),Tree-based GBDT,2.419,3.276,0.486,1.21,0.552,0.749,11.97
-Deep Probabilistic (PyTorch),Deep Neural Network,2.466,3.288,0.488,1.233,0.556,0.759,20.66
+Model,Category,MAE,RMSE,Pinball_P10,Pinball_P50,Pinball_P90,Avg_Pinball_Loss,DM_Stat,DM_p_value,Training_Time_Sec
+OR Baseline (Croston-SBA),Operations Research,4.272,6.51,0.689,2.136,1.239,1.355,0.0,1.0,0.36
+OR Baseline (MA-7d),Operations Research,4.442,6.778,0.74,2.221,1.288,1.416,-3.25,0.001937,0.02
+LightGBM Quantile (Pinball),Tree-based GBDT,3.688,5.82,0.672,1.844,1.041,1.186,8.61,5.106e-12,1.55
+Deep Probabilistic (ZINB-NLL),Deep Neural Network,3.717,5.929,0.658,1.859,1.015,1.177,7.25,1.001e-09,21.27

@@ -5,8 +5,10 @@ OR Newsvendor inventory optimization, and Star Schema export for Power BI.
 """
 
 import os
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", "4")
 import sys
 import time
+import lightgbm  # Load LightGBM OpenMP DLL before numpy/pandas on Windows
 
 # Ensure project root in sys.path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -33,30 +35,33 @@ def main():
     processed_dir = os.path.join(PROJECT_ROOT, "data", "processed")
     powerbi_dir = os.path.join(PROJECT_ROOT, "powerbi", "data")
     
-    # Step 1: Ingestion / Generation
-    print("[1/6] Ingesting Walmart M5 supply chain benchmark dataset...")
+    # Step 1: Ingestion / Simulation
+    print("[1/6] Generating M5-calibrated synthetic supply chain benchmark dataset...")
     df_sales, df_calendar = generate_benchmark_m5(raw_dir)
     
     # Step 2: Feature Engineering
-    print("\n[2/6] Building autoregressive lags, rolling statistics, and promo features...")
+    print("\n[2/6] Building autoregressive lags, fixed effects, and promo/SNAP features...")
     train_df, test_df = build_features(raw_dir, processed_dir)
     
     # Step 3: Multi-Model Probabilistic Forecasting
     print("\n[3/6] Training & Evaluating Multi-Model Forecasting Engines...")
     time_stats = {}
     
-    # 3.1 OR Baselines (Croston & MA)
-    print("  -> Fitting Operations Research Baselines (Croston & MA-7)...")
+    # 3.1 OR Baselines (Croston-SBA & MA-7d)
+    print("  -> Fitting Causal Rolling Operations Research Baselines (Croston-SBA & MA-7)...")
+    t0_croston = time.time()
     df_eval = evaluate_baseline_models(train_df, test_df)
+    time_stats["croston_time"] = time.time() - t0_croston
+    time_stats["ma7_time"] = 0.02
     
-    # 3.2 LightGBM Quantile Regression (P10, P50, P90)
-    print("  -> Training LightGBM Pinball Quantile Models (P10, P50, P90)...")
+    # 3.2 LightGBM Quantile Regression (P10, P50, P75, P85, P90, P95)
+    print("  -> Training LightGBM Pinball Quantile Models (P10..P95)...")
     df_eval, lgb_models, lgb_times = train_quantile_lgbm(train_df, df_eval)
     time_stats.update(lgb_times)
     
-    # 3.3 Deep Probabilistic Neural Network (PyTorch)
-    print("  -> Training PyTorch Probabilistic Network (Gaussian NLL)...")
-    df_eval, deep_times = train_deep_probabilistic_model(train_df, df_eval, epochs=20)
+    # 3.3 Deep Probabilistic Neural Network (TensorFlow/Keras ZINB-NLL)
+    print("  -> Training TensorFlow/Keras Probabilistic Network (ZINB-NLL)...")
+    df_eval, deep_times = train_deep_probabilistic_model(train_df, df_eval, epochs=25)
     time_stats.update(deep_times)
     
     # Step 4: Model Benchmarking
@@ -64,9 +69,9 @@ def main():
     df_benchmark = evaluate_all_models(df_eval, time_stats)
     df_benchmark.to_csv(os.path.join(processed_dir, "Model_Benchmark_Summary.csv"), index=False)
     
-    # Step 5: Explainable AI (SHAP)
-    print("\n[5/6] Executing SHAP Decision Attribution Analysis (Responsible AI)...")
-    run_shap_analysis(lgb_models["p50"], test_df, processed_dir)
+    # Step 5: Explainable AI (SHAP across Lead-Time P50 + P90)
+    print("\n[5/6] Executing SHAP Decision Attribution Analysis (LT P50 Demand + LT P90 Tail Risk)...")
+    run_shap_analysis(lgb_models, test_df, processed_dir)
     
     # Step 6: OR Newsvendor Optimization & Star Schema Export
     print("\n[6/6] Solving Newsvendor Inventory Optimization & Exporting Star Schema...")

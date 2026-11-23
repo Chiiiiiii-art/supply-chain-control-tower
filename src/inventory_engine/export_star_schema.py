@@ -42,6 +42,8 @@ def export_powerbi_tables(df_optimized: pd.DataFrame, df_calendar: pd.DataFrame,
         "holding_cost_quantile": "Holding_Cost_Quantile",
         "stockout_cost_quantile": "Stockout_Cost_Quantile",
         "total_cost_quantile": "Total_Cost_Quantile",
+        "total_cost_ml_gaussian": "Total_Cost_ML_Gaussian",
+        "total_cost_croston_nb": "Total_Cost_Croston_NB",
         "cost_savings_dollar": "Cost_Savings_Dollar",
         "is_stockout_classic": "Is_Stockout_Classic",
         "is_stockout_quantile": "Is_Stockout_Quantile"
@@ -67,8 +69,9 @@ def export_powerbi_tables(df_optimized: pd.DataFrame, df_calendar: pd.DataFrame,
     store_path = os.path.join(output_dir, "Dim_Store.csv")
     dim_store.to_csv(store_path, index=False)
     
-    # 4. Dim_Date
-    df_cal = df_calendar.copy()
+    # 4. Dim_Date (exclude post-test realization buffer dates beyond evaluation horizon)
+    max_eval_date = pd.to_datetime(df_optimized["date"]).max()
+    df_cal = df_calendar[pd.to_datetime(df_calendar["date"]) <= max_eval_date].copy()
     df_cal["month_name"] = pd.to_datetime(df_cal["date"]).dt.strftime("%B")
     df_cal["event_name"] = df_cal["event_name"].fillna("None")
     cal_cols = {

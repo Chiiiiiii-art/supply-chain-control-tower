@@ -24,16 +24,26 @@ SUMX(
 
 // =====================================================================================
 // 2. 機率性預測與區間指標 (Probabilistic Forecasts & Uncertainty Bands)
+//    註：分位數具「不可加性 (Non-additive)」，單一 SKU + 門市 + 日期點位始具精確機率意義
+//        （P10/P90 折線圖列需鎖定單一 SKU + 門市；Spread % 採日內區間寬度比平均值）。
 // =====================================================================================
 
 Forecast Demand (LGB P50 - Median) = 
 SUM(Fact_ForecastAndInventory[Pred_LGB_P50])
 
 Forecast Demand (LGB P10 - Conservative) = 
-SUM(Fact_ForecastAndInventory[Pred_LGB_P10])
+IF(
+    HASONEVALUE(Dim_Product[Item_ID]) && HASONEVALUE(Dim_Store[Store_ID]) && HASONEVALUE(Dim_Date[Date]),
+    SUM(Fact_ForecastAndInventory[Pred_LGB_P10]),
+    BLANK()
+)
 
 Forecast Demand (LGB P90 - Optimistic) = 
-SUM(Fact_ForecastAndInventory[Pred_LGB_P90])
+IF(
+    HASONEVALUE(Dim_Product[Item_ID]) && HASONEVALUE(Dim_Store[Store_ID]) && HASONEVALUE(Dim_Date[Date]),
+    SUM(Fact_ForecastAndInventory[Pred_LGB_P90]),
+    BLANK()
+)
 
 Forecast Demand (Croston Baseline) = 
 SUM(Fact_ForecastAndInventory[Pred_Croston])
@@ -41,26 +51,37 @@ SUM(Fact_ForecastAndInventory[Pred_Croston])
 Forecast Demand (Deep Probabilistic) = 
 SUM(Fact_ForecastAndInventory[Pred_Deep_P50])
 
-// 預測不確定性區間幅度 (Spread between P90 and P10)
+// 平均每日預測區間寬度 (Mean daily P90-P10 interval width per SKU-Store-Date cell)
 Forecast Uncertainty Spread = 
-[Forecast Demand (LGB P90 - Optimistic)] - [Forecast Demand (LGB P10 - Conservative)]
+AVERAGEX(
+    Fact_ForecastAndInventory,
+    Fact_ForecastAndInventory[Pred_LGB_P90] - Fact_ForecastAndInventory[Pred_LGB_P10]
+)
 
 Uncertainty Spread % = 
 DIVIDE(
-    [Forecast Uncertainty Spread], 
-    [Forecast Demand (LGB P50 - Median)], 
+    SUMX(Fact_ForecastAndInventory, Fact_ForecastAndInventory[Pred_LGB_P90] - Fact_ForecastAndInventory[Pred_LGB_P10]),
+    SUM(Fact_ForecastAndInventory[Pred_LGB_P50]),
     0
 )
 
 // =====================================================================================
 // 3. 庫存政策與緩衝對比 (Inventory Policies & Buffer Reduction)
+//    註：安全庫存與 ROP 屬「半可加性 (Semi-additive)」存量水準度量，
+//        可跨 SKU 與門市加總，但在時間維度上應取日平均 (AVERAGEX over Dim_Date) 而非跨日累加。
 // =====================================================================================
 
 Classic Safety Stock (Gaussian) = 
-SUM(Fact_ForecastAndInventory[Safety_Stock_Classic])
+AVERAGEX(
+    VALUES(Dim_Date[Date]),
+    CALCULATE(SUM(Fact_ForecastAndInventory[Safety_Stock_Classic]))
+)
 
 Dynamic Safety Stock (ML Quantile) = 
-SUM(Fact_ForecastAndInventory[Safety_Stock_Quantile])
+AVERAGEX(
+    VALUES(Dim_Date[Date]),
+    CALCULATE(SUM(Fact_ForecastAndInventory[Safety_Stock_Quantile]))
+)
 
 Safety Stock Buffer Reduction (Units) = 
 [Classic Safety Stock (Gaussian)] - [Dynamic Safety Stock (ML Quantile)]
@@ -73,10 +94,16 @@ DIVIDE(
 )
 
 Classic Reorder Point (ROP) = 
-SUM(Fact_ForecastAndInventory[ROP_Classic])
+AVERAGEX(
+    VALUES(Dim_Date[Date]),
+    CALCULATE(SUM(Fact_ForecastAndInventory[ROP_Classic]))
+)
 
 Dynamic Reorder Point (ROP) = 
-SUM(Fact_ForecastAndInventory[ROP_Quantile])
+AVERAGEX(
+    VALUES(Dim_Date[Date]),
+    CALCULATE(SUM(Fact_ForecastAndInventory[ROP_Quantile]))
+)
 
 // =====================================================================================
 // 4. 財務成本與投資回報 ROI (Financial Costs & Business Value Realization)
@@ -111,7 +138,9 @@ DIVIDE(
 )
 
 // =====================================================================================
-// 5. 服務水準與缺貨風險 KPI (Service Levels & Stockout Risk KPI)
+// 5. 週期服務水準與缺貨風險 KPI (Cycle Service Level / Type-1 SLA & Stockout Risk)
+//    註：此處為前置期無缺貨機率 Pr(D_{t,L} <= ROP) 之週期服務水準 (Type-1 Cycle Service Level)，
+//        非訂單數量滿足率 (Type-2 Fill Rate / OTIF)。
 // =====================================================================================
 
 Total Incidents Count = 

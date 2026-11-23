@@ -37,7 +37,7 @@
 ### 頁面 1：戰略指揮官總覽 (Executive Control Tower)
 - **頂部頁面橫幅 (Page Banner)**：
   - **大標題**：`Executive Supply Chain Control Tower`
-  - **副標題**：`Enterprise inventory capital efficiency, cost savings & fulfillment SLA`
+  - **副標題**：`Enterprise inventory capital efficiency, cost savings & Cycle Service Level (Type-1 SLA)`
 - **頂部 4 張 KPI 卡片（建議 1x4 單列橫排，消除留白）**：
   > ⚠️ **必改設定**：在卡片格式窗格中，將 **「類別標籤 (Category Label)」關閉 (Off)**，只保留上方自訂的視覺效果標題，避免文字重複堆疊！
   1. **Card 1: Net Cost Savings**
@@ -52,9 +52,9 @@
      - 標題：`Dynamic Buffer Shift`
      - 數值：`[Safety Stock Reduction %]`
      - 副標題 (`fx`)：`Dyn_Sub_SafetyStock`（解釋係為高風險品項增補庫存）
-  4. **Card 4: Fulfillment SLA (OTIF)**
-     - 標題：`Fulfillment SLA`
-     - 數值：`[Service Level % (ML Quantile)]`
+  4. **Card 4: Cycle Service Level (Type-1 SLA)**
+     - 標題：`Cycle Service Level`
+     - 數值：`[Service Level % (ML Quantile)]`（定義為前置期無缺貨週期比例 $\Pr(D_{t,L} \le \text{ROP})$，非 Type-2 OTIF 數量滿足率）
      - 副標題 (`fx`)：`Dyn_Sub_ServiceLevel`
 - **主要趨勢圖（折線與群組直條圖）**：
   - **精簡標題**：`Weekly Cost & Savings Trend`
@@ -75,7 +75,7 @@
 - **頂部切片器（Slicers，橫向緊湊排列，避免巨大留白）**：
   1. `Store Location`：改為橫向藥丸/磚塊按鈕，縮減高度。
   2. `SKU Selector`：**新增 `Dim_Product[Item_ID]` 下拉式切片器**（開啟搜尋功能）。
-- **中央預測漏斗圖（折線圖 Line Chart）**：
+- **中央預測漏斗圖（折線圖 Line Chart，須先透過上方切片器鎖定單一 SKU 與門市；因分位數不具跨品項可加性）**：
   - **精簡標題**：`Demand Uncertainty Funnel (P10 / P50 / P90)`
   - **副標題 (`fx`)**：`Dyn_Sub_UncertaintyBand`
   - **X 軸**：`Dim_Date[Date]`
@@ -90,8 +90,8 @@
     - `SKU ID`
     - `Actual Sales`
     - `LightGBM P50`
-    - `Croston`
-    - `PyTorch Deep`
+    - `Croston-SBA`
+    - `TensorFlow ZINB-NLL`
     - `Spread %`（開啟資料橫條 Data Bar）
 
 ---
@@ -108,7 +108,7 @@
 - **右側成本折衝圖（堆疊直條圖）**：
   - **精簡標題 1**：`ML Policy: Holding vs. Stockout Cost`
   - **精簡標題 2**：`Classic Policy: Holding vs. Stockout Cost`
-  - **改善建議**：統一兩圖的 Y 軸最大刻度（皆鎖定為 100 千），避免視覺誤導。
+  - **改善建議**：統一兩圖的 Y 軸最大刻度（例如全品項匯總皆鎖定為 `15K`；因經過 `1/L` 週期常態化後 Classic 總成本約 `13.3K`），避免視覺誤導。
 
 ---
 
@@ -129,7 +129,7 @@
   - **值 (Values) 欄位顯示名稱**：
     - `Avg Daily Demand`
     - `Avg Lead Time (Days)` *(確認聚合為平均值)*
-    - `Fulfillment SLA (ML)`
+    - `Cycle Service Level (ML)`
     - `Net Cost Savings ($)`
 
 ---
@@ -166,7 +166,7 @@ IF(
 Dyn_Sub_CostReduction = 
 VAR Pct = [Cost Reduction %]
 RETURN
-"Newsvendor policy outperforms baseline (Benchmark: 15%–35%)."
+"ML quantile policy achieves " & FORMAT(Pct, "0.0%") & " net cycle cost reduction vs. Classic Gaussian baseline."
 
 // =====================================================================================
 // 4. 履約率服務水準動態說明 (P1 Subtitle)
